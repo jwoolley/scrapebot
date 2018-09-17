@@ -3,5 +3,8 @@ logs
 *.log
 debug.log
 
+# Local files
+local
+
 # Dependency directories
 node_modules/
