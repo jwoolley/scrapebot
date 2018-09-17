@@ -3,6 +3,7 @@ const webdriver = require('selenium-webdriver');
 const By = webdriver.By;
 const until = webdriver.until;
 
+
 const globals = {
 	DEBUG: true,
 	webdriver: webdriver,
@@ -95,9 +96,56 @@ async function login(username, password) {
 	}
 }
 
-async function run() {
-	log.debug('starting...')	
+async function run(payload) {
+	log.debug('starting...');
 	globals.browser = getBrowser(globals.webdriver);
-	await login('frenchy', 'booboo');
+	try {
+		await login(payload.credentials.username, payload.credentials.password);
+	} finally {
+		if (globals.browser) {
+			globals.browser.quit();
+		}
+	}
 }
-run();
+
+function parseCredentials(filePath) {
+	try {
+		let credentials;
+		try {
+			credentials = require(filePath);
+		} catch (e) {
+			throw new Error(`${filePath} is not a valid JSON file`);
+		}			
+		if (!credentials.username || !credentials.password) {
+			throw new Error(`username or password not specified`);
+		}
+		return credentials;
+	} catch(e) {
+		throw new Error('Unable to parse credentials file: ' + e.message);
+	}
+}
+
+const argv = require('yargs')
+	.option('c', {
+		alias: 'credentials',
+		describe: 'path to credentials file',
+		demand: 'path to credentials file is required',		
+		type: 'string',
+		nargs: 1,
+		requiresArg: true
+	})
+	.demandOption(['c'])
+	.help()
+	.argv;
+
+const credentialsFilePath = '/.'.includes(argv.credentials.charAt(0)) ? argv.credentials : './' + argv.credentials;
+console.log(`credentials file:`, credentialsFilePath);
+
+const credentials = parseCredentials(credentialsFilePath);
+console.log('CREDENTIALS:', credentials);
+
+const payload = {
+	credentials: credentials
+};
+
+run(payload);
